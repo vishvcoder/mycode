@@ -1,0 +1,55 @@
+---
+- name: Network Switch Config Saver (v2.9 and beyond)
+  hosts: eosswitches
+  # in ansible v2.9+ gather_facts
+  # would gather_facts about the switches when "ansible_connection: network_cli"
+  # this value is mapped in ~/switch.creds
+  # the correct *_info or *_facts module is selected based off of "ansible_network_os" value
+  # which is typically provided in inventory as a group or host variable
+  connection: network_cli
+  gather_facts: yes
+  # ^^ the gather_subset is introduced in v2.9
+  # users can now also optionally set info they want the gather_facts
+  # modules to gather when running against specific vendors
+  #
+  # module_defaults can be used at a play or task level
+  # the following code tells ansible we want to get config when switch facts are gathered
+  module_defaults:
+          ansible.legacy.eos_facts: { gather_subset: config }
+          ansible.legacy.ios_facts: { gather_subset: config }
+          ansible.legacy.nxos_facts: { gather_subset: config }
+          ansible.legacy.junos_facts: { gather_subset: config }
+          ansible.legacy.vyos_facts: { gather_subset: config }
+
+  # location on the controller
+  vars_files:
+    - ~/switch.creds
+
+  tasks:
+  # define current date
+  - name: get the current date
+    command: date "+%Y-%m-%d"
+    register: result
+    vars:
+      ansible_connection: local
+
+  # set a fact to make things easier
+  - name: set a variable to make date easier
+    set_fact:
+      date_now: "{{ result.stdout }}"
+
+  # build backup directory based on the current date
+  - name: Create dir "{{ date_now }}" to save current switch config backups
+    file:
+      path: "~/mycode/backup/{{ date_now }}/"
+      state: directory    # Playbook will FAIL without this directory
+
+  - name: Save out backed up configuration
+    copy:
+      content: "{{ ansible_facts.net_config }}"
+      dest: "~/mycode/backup/{{ date_now }}/{{ inventory_hostname }}-config.backup"
+
+  - name: Archival process
+    archive:
+      path: "~/mycode/backup/{{ date_now }}/{{ inventory_hostname }}-config.backup"
+      remove: True     # removes the original file

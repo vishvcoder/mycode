@@ -1,0 +1,52 @@
+---
+- name: Network Switch Config Saver (up to v2.8)
+  hosts: allvendors
+  # in ansible v2.8 gather_facts
+  # would gather_facts about the controller when in "ansible_connection: network_cli"
+  # this value is mapped in ~/switch.creds
+  gather_facts: yes
+
+  # location on the controller
+  vars_files:
+    - ~/switch.creds
+
+  tasks:        
+  - name: Arista EOS fact collection
+    eos_facts:
+      gather_subset: all  # IMPORTANT! Look at the Return values at the bottom of the eos_facts
+    when: ansible_network_os == "eos"
+
+  - name: Cisco IOS fact collection
+    ios_facts:
+      gather_subset: all  
+    when: ansible_network_os == "ios"
+
+  - name: Cisco NXOS fact collection
+    nxos_facts:
+      gather_subset: all  
+    when: ansible_network_os == "nxos"
+
+  - name: Juniper JunOS fact collection
+    junos_facts:
+      gather_subset: all
+    when: ansible_network_os == "junos"
+
+  - name: VyOS fact collection
+    vyos_facts:
+      gather_subset: all
+    when: ansible_network_os == "vyos"              
+
+  - name: Create dir to save switch config backups
+    file:
+      path: ~/mycode/backup/{{ ansible_date_time.date }}/
+      state: directory    # Playbook will FAIL without this directory
+
+  - name: Save out backed up configuration       
+    copy:
+      content: "{{ ansible_net_config }}"
+      dest: "~/mycode/backup/{{ ansible_date_time.date }}/{{ inventory_hostname }}-config.backup"
+
+  - name: Archival process
+    archive:
+      path: "~/mycode/backup/{{ ansible_date_time.date }}/{{ inventory_hostname }}-config.backup"
+      remove: True     # removes the original file
