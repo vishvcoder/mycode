@@ -10,7 +10,7 @@ sw-1
 sw-2
 
 [eosswitches:vars]
-ansible_network_os=eos 
+ansible_network_os=eos
 
 ; additional switch vendors can be described within their own group
 ; cisco ios switches could be described below

@@ -1,0 +1,17 @@
+---
+- name: encrypt a string
+  hosts: localhost
+
+  # edit the following section with your string
+  vars:
+    mypass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          3037393038326336356...
+          6236626566653833373...
+          3761633065666139373...
+          6232623765613133640...
+
+  tasks:
+    - name: print an encrypted string
+      debug:
+         msg: "{{ mypass  }}"
